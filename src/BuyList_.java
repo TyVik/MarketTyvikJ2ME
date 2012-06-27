@@ -1,4 +1,6 @@
 import java.io.IOException;
+import java.util.Enumeration;
+import java.util.Hashtable;
 
 import javax.microedition.io.Connector;
 import javax.microedition.lcdui.Choice;
@@ -13,9 +15,11 @@ import javax.wireless.messaging.TextMessage;
 
 public class BuyList_ extends CommonForm implements ItemCommandListener {
   private MarketTyvikJ2ME midlet;
-  private ChoiceGroup choiceGroup = new ChoiceGroup("Общий список", Choice.MULTIPLE);;
+  private Hashtable items = null;
+  private ChoiceGroup choiceGroup = new ChoiceGroup("Общий список", Choice.MULTIPLE);
   private Command delCommand = new Command("Удалить", Command.ITEM, 0);
   private Command addCommand = new Command("Добавить", Command.ITEM, 0);
+  private Command refreshCommand = new Command("Обновить", Command.ITEM, 0);
   private Command exitCommand = new Command("Выход", Command.EXIT, 0);
   private Command aboutCommand = new Command("О программе", Command.HELP, 0);
   private Command smsCommand = new Command("Отправить СМС", Command.ITEM, 0);
@@ -26,14 +30,15 @@ public class BuyList_ extends CommonForm implements ItemCommandListener {
     midlet = m;
     choiceGroup.addCommand(addCommand);
     choiceGroup.addCommand(delCommand);
+    choiceGroup.addCommand(refreshCommand);
     choiceGroup.setItemCommandListener(this);
     choiceGroup.setSelectedFlags(new boolean[] {  });
     form.append(choiceGroup);
-    form.addCommand(aboutCommand);
     form.addCommand(exitCommand);
-    form.addCommand(smsCommand);
+    form.addCommand(aboutCommand);
     form.addCommand(optionsCommand);
-    fillList();
+    form.addCommand(smsCommand);
+    refreshElements();
   }
   
   public void commandAction(Command command, Displayable displayable) {
@@ -60,47 +65,71 @@ public class BuyList_ extends CommonForm implements ItemCommandListener {
         addItem.show();
       } else if (command == delCommand) {
         delElements();
+      } else if (command == refreshCommand) {
+        refreshElements();
       }
     }
   }
+  
+  private void refreshElements() {
+    items = fillList();
+    fillChoice();
+  }
 
-  public void fillList() {
+  public Hashtable fillList() {
+    Hashtable result = new Hashtable();
     try {
-      String[] strs = MarketTyvikJ2ME.server.getFromServer();
-      for (int i = 0; i < strs.length; i++) {
-        choiceGroup.append(strs[i], null);
+      String[] pairs = MarketTyvikJ2ME.server.getFromServer();
+      for (int i = 0; i < pairs.length; i++) {
+        String[] pair = MarketTyvikJ2ME.split(pairs[i], '^', false);
+        result.put(new Integer(Integer.parseInt(pair[0])), pair[1]);
       }
     } catch (Exception e) {
-      showAlert("Не могу получить список с сервера\n" + e.getMessage());
+      showAlert("Не могу получить список с сервера\n" + e.getMessage() + "\n" + e.toString());
+    }
+    return result;
+  }
+
+  public void fillChoice() {
+    choiceGroup.deleteAll();
+    Enumeration enu = items.keys();
+    while (enu.hasMoreElements()) {
+      choiceGroup.append((String)items.get(enu.nextElement()), null);
     }
   }
   
   public void addElement(String element) {
-    choiceGroup.append(element, null);
     try {
       MarketTyvikJ2ME.server.addToServer(element);
-      choiceGroup.append(element, null);
     } catch (IOException e) {
       showAlert("Ошибка при добавлении на сервер\n" + e.getMessage());
-   }
+    }
+    refreshElements();
   }
 
   public void delElements() {
-    String item = "";
-    int i = 0;
-    while (i < choiceGroup.size()) {
-      if (choiceGroup.isSelected(i)) {
-        item = item + "itemsSelected%5B%5D=" + choiceGroup.getString(i) + "&";
-        choiceGroup.delete(i);
-      } else {
+    try {
+      int i = 0;
+      Integer key;
+      String value;
+      while (i < choiceGroup.size()) {
+        if (choiceGroup.isSelected(i)) {
+          String itemString = choiceGroup.getString(i);
+          Enumeration enu = items.keys();
+          while (enu.hasMoreElements()) {
+            key = (Integer)enu.nextElement();
+            value = (String)items.get(key);
+            if (value == itemString) {
+              MarketTyvikJ2ME.server.delFromServer(key.intValue());
+            }
+          }
+        }
         i++;
       }
-    }
-    try {
-      MarketTyvikJ2ME.server.sendRequest(item);
     } catch (IOException e) {
       showAlert("Ошибка в удалении с сервера\n" + e.getMessage());
-   }
+    }
+    refreshElements();
   }
   
   public void showAlert(String text) {

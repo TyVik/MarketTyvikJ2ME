@@ -8,67 +8,62 @@ import javax.microedition.io.HttpConnection;
 
 
 public class Server {
-  private String address;
   
-  public Server(String addr) {
-    super();
-    address = addr;
-  }
-
-  public void sendRequest(String item) throws IOException{
-    HttpConnection c = null;
-    OutputStream os = null;
-    int rc;
+  public String sendRequest(String address, String postData) throws IOException {
+    HttpConnection connection = null;
+    String result = "";
     try {
-      c = (HttpConnection) Connector.open("http://"+address+"/index.php?r=share/index");
-      c.setRequestMethod(HttpConnection.POST);
-      c.setRequestProperty("User-Agent", "Profile/MIDP-2.0 Configuration/CLDC-1.0");
-      c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-      c.setRequestProperty("Content-Length", Integer.toString(item.length()));
-      os = c.openOutputStream();
-      os.write(item.getBytes("utf-8"));
-      os.flush();
-      rc = c.getResponseCode();
-      if (rc != HttpConnection.HTTP_OK) {
+      connection = (HttpConnection) Connector.open(MarketTyvikJ2ME.options.ServerPath.getString() + "/" + address);
+      connection.setRequestProperty("User-Agent", "Profile/MIDP-2.0 Configuration/CLDC-1.0");
+	    if (postData == null) {
+        connection.setRequestMethod(HttpConnection.GET);
+	    } else {
+        connection.setRequestMethod(HttpConnection.POST);
+        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        connection.setRequestProperty("Content-Length", Integer.toString(postData.length()));
+        OutputStream outStream = null;
+		    try {
+		      outStream = connection.openOutputStream();
+          outStream.write(postData.getBytes("utf-8"));
+          outStream.flush();
+		    } finally {
+          if (outStream != null) {
+            outStream.close();
+          }
+		    }
+	    }
+      int rc = connection.getResponseCode();
+      if (rc == HttpConnection.HTTP_OK) {
+        InputStream inStream = null;
+	      try {
+	        inStream = connection.openInputStream();
+          InputStreamReader inStreamReader = new InputStreamReader(inStream, "utf-8");
+          int ch;
+          while ((ch = inStreamReader.read()) != -1) {
+            result += (char) ch;
+          }
+		      return result;
+		    } finally {
+		      inStream.close();
+		    }
+	    } else {
         throw new IOException("HTTP response code: " + rc);
       }
     } finally {
-      if (os != null) {
-        os.close();
-      }
-      if (c != null) {
-        c.close();
+      if (connection != null) {
+        connection.close();
       }
     }
   }
 
   public void addToServer(String element) throws IOException{
-    sendRequest("Share[Text]=" + element + "\n");
+    sendRequest("api/add/" + element, null);
   }
 
+  public void delFromServer(int element) throws IOException{
+    sendRequest("api/delete/" + Integer.toString(element), null);
+  }
   public String[] getFromServer() throws IOException{
-    HttpConnection c = null;
-    InputStream is = null;
-    InputStreamReader isr = null;
-    String result = "";
-    try {
-      c = (HttpConnection) Connector.open("http://"+address+"/index.php?r=share/getList");
-      is = c.openInputStream();
-      isr = new InputStreamReader(is, "utf-8");
-      int ch;
-      while ((ch = isr.read()) != -1) {
-        result += (char) ch;
-      }
-    } catch (IllegalArgumentException e) {
-      throw new IOException("Не задан адрес сервера");
-    } finally {
-      if (is != null) {
-        is.close();
-      }
-      if (c != null) {
-        c.close();
-      }
-    }
-    return MarketTyvikJ2ME.split(result, '&', false);
+    return MarketTyvikJ2ME.split(sendRequest("api/list", null), '$', false);
   }
 }

@@ -28,11 +28,11 @@ public class MarketTyvikJ2ME extends MIDlet {
     gaugeStart.setLabel("Загрузка настроек");
     options = new Options();
     gaugeStart.setValue(2);
+    gaugeStart.setLabel("Подключение к серверу");
+    server = new Server();
+    gaugeStart.setValue(3);
     gaugeStart.setLabel("Инициализация форм");
     buyList_ = new BuyList_(this);
-    gaugeStart.setValue(3);
-    gaugeStart.setLabel("Подключение к серверу");
-    server = new Server(options.ServerPath.getString());
   }
 
   public void startMIDlet() {
