@@ -13,7 +13,8 @@ public class Server {
     HttpConnection connection = null;
     String result = "";
     try {
-      connection = (HttpConnection) Connector.open(MarketTyvikJ2ME.options.ServerPath.getString() + "/" + address);
+      String params = new String(address.getBytes("utf-8"));
+      connection = (HttpConnection) Connector.open(MarketTyvikJ2ME.options.ServerPath.getString() + "/" + params);
       connection.setRequestProperty("User-Agent", "Profile/MIDP-2.0 Configuration/CLDC-1.0");
 	    if (postData == null) {
         connection.setRequestMethod(HttpConnection.GET);
