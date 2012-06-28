@@ -13,8 +13,7 @@ public class Server {
     HttpConnection connection = null;
     String result = "";
     try {
-      String params = new String(address.getBytes("utf-8"));
-      connection = (HttpConnection) Connector.open(MarketTyvikJ2ME.options.ServerPath.getString() + "/" + params);
+      connection = (HttpConnection) Connector.open("http://" + MarketTyvikJ2ME.options.ServerPath.getString() + "/" + address);
       connection.setRequestProperty("User-Agent", "Profile/MIDP-2.0 Configuration/CLDC-1.0");
 	    if (postData == null) {
         connection.setRequestMethod(HttpConnection.GET);
@@ -58,7 +57,7 @@ public class Server {
   }
 
   public void addToServer(String element) throws IOException{
-    sendRequest("api/add/" + element, null);
+    sendRequest("api/add", "name=" + element);
   }
 
   public void delFromServer(int element) throws IOException{
