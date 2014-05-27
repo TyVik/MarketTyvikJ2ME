@@ -72,22 +72,12 @@ public class BuyList_ extends CommonForm implements ItemCommandListener {
   }
   
   private void refreshElements() {
-    items = fillList();
-    fillChoice();
-  }
-
-  public Hashtable fillList() {
-    Hashtable result = new Hashtable();
     try {
-      String[] pairs = MarketTyvikJ2ME.server.getFromServer();
-      for (int i = 0; i < pairs.length; i++) {
-        String[] pair = MarketTyvikJ2ME.split(pairs[i], '^', false);
-        result.put(new Integer(Integer.parseInt(pair[0])), pair[1]);
-      }
+      items = MarketTyvikJ2ME.server.getFromServer();
+      fillChoice();
     } catch (Exception e) {
       showAlert("Не могу получить список с сервера\n" + e.getMessage() + "\n" + e.toString());
     }
-    return result;
   }
 
   public void fillChoice() {
@@ -100,11 +90,12 @@ public class BuyList_ extends CommonForm implements ItemCommandListener {
   
   public void addElement(String element) {
     try {
-      MarketTyvikJ2ME.server.addToServer(element);
-    } catch (IOException e) {
+      int id = MarketTyvikJ2ME.server.addToServer(element);
+      items.put(new Integer(id), element);
+      fillChoice();
+    } catch (Exception e) {
       showAlert("Ошибка при добавлении на сервер\n" + e.getMessage());
     }
-    refreshElements();
   }
 
   public void delElements() {
@@ -126,7 +117,7 @@ public class BuyList_ extends CommonForm implements ItemCommandListener {
         }
         i++;
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
       showAlert("Ошибка в удалении с сервера\n" + e.getMessage());
     }
     refreshElements();
