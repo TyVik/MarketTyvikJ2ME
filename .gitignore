@@ -1,0 +1,9 @@
+.eclipseme.tmp/
+.processed/
+.settings/
+bin/
+deployed/
+
+.project
+.classpath
+.eclipseme
